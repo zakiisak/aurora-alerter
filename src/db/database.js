@@ -23,52 +23,71 @@ db.pragma('foreign_keys = ON');
 try {
   const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='alerts'").get();
   
-  if (tableInfo && tableInfo.sql.includes('threshold <= 9')) {
-    console.log('[Database] Migrating alerts table schema...');
+  if (tableInfo) {
+    const needsMigration = tableInfo.sql.includes('threshold <= 9') || !tableInfo.sql.includes('increment_threshold');
     
-    // Disable foreign keys temporarily for migration
-    db.pragma('foreign_keys = OFF');
-    
-    // Create new table with updated schema
-    db.exec(`
-      CREATE TABLE alerts_new (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        latitude REAL NOT NULL,
-        longitude REAL NOT NULL,
-        threshold INTEGER NOT NULL CHECK(threshold >= 1 AND threshold <= 100),
-        increment_threshold INTEGER NOT NULL DEFAULT 10 CHECK(increment_threshold >= 1 AND increment_threshold <= 50),
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-    `);
-    
-    // Copy data from old table (set default increment_threshold for existing rows)
-    db.exec(`
-      INSERT INTO alerts_new (id, user_id, latitude, longitude, threshold, increment_threshold, created_at, updated_at)
-      SELECT id, user_id, latitude, longitude, threshold, 
-             COALESCE(increment_threshold, 10) as increment_threshold,
-             created_at, updated_at
-      FROM alerts;
-    `);
-    
-    // Drop old table
-    db.exec('DROP TABLE alerts;');
-    
-    // Rename new table
-    db.exec('ALTER TABLE alerts_new RENAME TO alerts;');
-    
-    // Recreate indexes
-    db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_alerts_user_id ON alerts(user_id);
-      CREATE INDEX IF NOT EXISTS idx_alerts_coords ON alerts(latitude, longitude);
-    `);
-    
-    // Re-enable foreign keys
-    db.pragma('foreign_keys = ON');
-    
-    console.log('[Database] Migration completed successfully.');
+    if (needsMigration) {
+      console.log('[Database] Migrating alerts table schema...');
+      
+      // Disable foreign keys temporarily for migration
+      db.pragma('foreign_keys = OFF');
+      
+      // Create new table with updated schema
+      db.exec(`
+        CREATE TABLE alerts_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          latitude REAL NOT NULL,
+          longitude REAL NOT NULL,
+          threshold INTEGER NOT NULL CHECK(threshold >= 1 AND threshold <= 100),
+          increment_threshold INTEGER NOT NULL DEFAULT 10 CHECK(increment_threshold >= 1 AND increment_threshold <= 50),
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+      `);
+      
+      // Check if increment_threshold column exists in old table
+      const oldTableInfo = db.prepare("PRAGMA table_info(alerts)").all();
+      const hasIncrementThreshold = oldTableInfo.some(col => col.name === 'increment_threshold');
+      
+      // Copy data from old table
+      if (hasIncrementThreshold) {
+        // Old table has increment_threshold column
+        db.exec(`
+          INSERT INTO alerts_new (id, user_id, latitude, longitude, threshold, increment_threshold, created_at, updated_at)
+          SELECT id, user_id, latitude, longitude, threshold, 
+                 COALESCE(increment_threshold, 10) as increment_threshold,
+                 created_at, updated_at
+          FROM alerts;
+        `);
+      } else {
+        // Old table doesn't have increment_threshold column - use default value
+        db.exec(`
+          INSERT INTO alerts_new (id, user_id, latitude, longitude, threshold, increment_threshold, created_at, updated_at)
+          SELECT id, user_id, latitude, longitude, threshold, 10 as increment_threshold,
+                 created_at, updated_at
+          FROM alerts;
+        `);
+      }
+      
+      // Drop old table
+      db.exec('DROP TABLE alerts;');
+      
+      // Rename new table
+      db.exec('ALTER TABLE alerts_new RENAME TO alerts;');
+      
+      // Recreate indexes
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_alerts_user_id ON alerts(user_id);
+        CREATE INDEX IF NOT EXISTS idx_alerts_coords ON alerts(latitude, longitude);
+      `);
+      
+      // Re-enable foreign keys
+      db.pragma('foreign_keys = ON');
+      
+      console.log('[Database] Migration completed successfully.');
+    }
   }
 } catch (error) {
   console.error('[Database] Migration error:', error);
