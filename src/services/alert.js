@@ -84,7 +84,7 @@ async function checkSingleAlert(alert, coordinates) {
   const threshold = alert.threshold;
 
   // Check if threshold is met
-  if (currentAuroraValue < threshold && false) {
+  if (currentAuroraValue < threshold) {
     return false;
   }
 
