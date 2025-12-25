@@ -5,6 +5,7 @@
 
 import express from 'express';
 import db from '../db/database.js';
+import { getCachedCityName } from '../services/geocoding.js';
 
 const router = express.Router();
 
@@ -33,7 +34,7 @@ router.use(getUserFromEmail);
  * Get all alerts for the current user
  * GET /api/alerts
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const alerts = db.prepare(`
       SELECT 
@@ -51,7 +52,44 @@ router.get('/', (req, res) => {
       ORDER BY a.created_at DESC
     `).all(req.user.id);
 
-    res.json({ success: true, alerts });
+    // Enrich alerts with city names and history data
+    const enrichedAlerts = await Promise.all(
+      alerts.map(async (alert) => {
+        // Get city name
+        const cityName = await getCachedCityName(alert.latitude, alert.longitude);
+        
+        // Get 24-hour history data
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const history = db.prepare(`
+          SELECT aurora_value, recorded_at
+          FROM aurora_history
+          WHERE alert_id = ? AND recorded_at >= ?
+          ORDER BY recorded_at ASC
+        `).all(alert.id, twentyFourHoursAgo);
+
+        // Get latest recorded aurora value
+        const latestRecord = db.prepare(`
+          SELECT aurora_value, recorded_at
+          FROM aurora_history
+          WHERE alert_id = ?
+          ORDER BY recorded_at DESC
+          LIMIT 1
+        `).get(alert.id);
+
+        return {
+          ...alert,
+          cityName,
+          latestAuroraValue: latestRecord ? latestRecord.aurora_value : null,
+          latestAuroraValueAt: latestRecord ? latestRecord.recorded_at : null,
+          history: history.map(h => ({
+            value: h.aurora_value,
+            timestamp: h.recorded_at,
+          })),
+        };
+      })
+    );
+
+    res.json({ success: true, alerts: enrichedAlerts });
   } catch (error) {
     console.error('Error fetching alerts:', error);
     res.status(500).json({ error: 'Failed to fetch alerts' });

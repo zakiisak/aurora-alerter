@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AlertModal from './AlertModal';
+import AuroraHistoryChart from './AuroraHistoryChart';
 import { apiRequest } from '../utils/api';
 import './AlertList.css';
 
@@ -136,6 +137,9 @@ function AlertList({ user, onLogout }) {
                     <div className="info-item">
                       <span className="info-label">Location:</span>
                       <span className="info-value">
+                        {alert.cityName || 'Loading...'}
+                      </span>
+                      <span className="info-coords">
                         {alert.latitude.toFixed(4)}°, {alert.longitude.toFixed(4)}°
                       </span>
                     </div>
@@ -145,6 +149,19 @@ function AlertList({ user, onLogout }) {
                         {alert.threshold}/9
                       </span>
                     </div>
+                    {alert.latestAuroraValue !== null && (
+                      <div className="info-item">
+                        <span className="info-label">Latest Value:</span>
+                        <span className="info-value latest-value">
+                          {alert.latestAuroraValue}/9
+                        </span>
+                        {alert.latestAuroraValueAt && (
+                          <span className="info-time">
+                            {new Date(alert.latestAuroraValueAt).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    )}
                     {alert.last_notified_value !== null && (
                       <div className="info-item">
                         <span className="info-label">Last Notified:</span>
@@ -159,6 +176,9 @@ function AlertList({ user, onLogout }) {
                       </div>
                     )}
                   </div>
+                  
+                  {/* 24-hour history chart */}
+                  <AuroraHistoryChart history={alert.history || []} />
                 </div>
               </div>
             ))}

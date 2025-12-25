@@ -6,6 +6,7 @@
 import db from '../db/database.js';
 import { fetchAuroraData, findClosestCoordinate } from './aurora.js';
 import { sendAuroraAlert } from './email.js';
+import { getCachedCityName } from './geocoding.js';
 
 /**
  * Check all active alerts against latest aurora data
@@ -46,6 +47,10 @@ export async function checkAllAlerts() {
 
     for (const alert of alerts) {
       try {
+        // Store history data for this alert
+        await storeAuroraHistory(alert, coordinates);
+        
+        // Check if notification should be sent
         const shouldNotify = await checkSingleAlert(alert, coordinates);
         if (shouldNotify) {
           notificationsSent++;
@@ -116,11 +121,15 @@ async function checkSingleAlert(alert, coordinates) {
 
   // Send notification
   try {
+    // Get city name for the alert location
+    const cityName = await getCachedCityName(alert.latitude, alert.longitude);
+    
     await sendAuroraAlert(alert.email, {
       auroraValue: currentAuroraValue,
       threshold,
       latitude: alert.latitude,
       longitude: alert.longitude,
+      cityName,
     });
 
     // Update notification state
@@ -139,6 +148,30 @@ async function checkSingleAlert(alert, coordinates) {
 }
 
 /**
+ * Store aurora history data for an alert
+ * @param {Object} alert - Alert record
+ * @param {Array} coordinates - Aurora coordinate data
+ */
+async function storeAuroraHistory(alert, coordinates) {
+  const closest = findClosestCoordinate(
+    coordinates,
+    alert.latitude,
+    alert.longitude
+  );
+
+  if (!closest || closest.aurora === undefined) {
+    return;
+  }
+
+  const now = new Date().toISOString();
+  
+  db.prepare(`
+    INSERT INTO aurora_history (alert_id, aurora_value, recorded_at)
+    VALUES (?, ?, ?)
+  `).run(alert.id, closest.aurora, now);
+}
+
+/**
  * Update notification state after sending an alert
  * @param {number} alertId - Alert ID
  * @param {number} auroraValue - Aurora value that triggered notification
@@ -154,5 +187,21 @@ function updateNotificationState(alertId, auroraValue) {
       last_notified_value = excluded.last_notified_value,
       last_notified_at = excluded.last_notified_at
   `).run(alertId, auroraValue, now);
+}
+
+/**
+ * Clean up old aurora history data (older than 24 hours)
+ */
+export function cleanupOldHistory() {
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  
+  const result = db.prepare(`
+    DELETE FROM aurora_history
+    WHERE recorded_at < ?
+  `).run(twentyFourHoursAgo);
+
+  if (result.changes > 0) {
+    console.log(`[Cleanup] Deleted ${result.changes} old aurora history records`);
+  }
 }
 

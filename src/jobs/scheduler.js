@@ -4,7 +4,7 @@
  */
 
 import cron from 'node-cron';
-import { checkAllAlerts } from '../services/alert.js';
+import { checkAllAlerts, cleanupOldHistory } from '../services/alert.js';
 
 /**
  * Start the background job scheduler
@@ -12,10 +12,16 @@ import { checkAllAlerts } from '../services/alert.js';
 export function startScheduler() {
   console.log('[Scheduler] Starting background job scheduler...');
   
-  // Run every 5 minutes: */5 * * * *
+  // Run alert check every 5 minutes: */5 * * * *
   cron.schedule('*/5 * * * *', async () => {
     console.log('[Scheduler] Running scheduled alert check...');
     await checkAllAlerts();
+  });
+
+  // Clean up old history data every hour
+  cron.schedule('0 * * * *', () => {
+    console.log('[Scheduler] Running history cleanup...');
+    cleanupOldHistory();
   });
 
   // Also run immediately on startup (optional, for testing)
@@ -24,6 +30,9 @@ export function startScheduler() {
     console.error('[Scheduler] Error in initial alert check:', err);
   });
 
-  console.log('[Scheduler] Scheduler started. Alert checks will run every 5 minutes.');
+  // Run initial cleanup
+  cleanupOldHistory();
+
+  console.log('[Scheduler] Scheduler started. Alert checks will run every 5 minutes, cleanup every hour.');
 }
 

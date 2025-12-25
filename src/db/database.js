@@ -49,9 +49,20 @@ db.exec(`
     FOREIGN KEY (alert_id) REFERENCES alerts(id) ON DELETE CASCADE
   );
 
+  -- Aurora data history (stores historical aurora values for alerts)
+  CREATE TABLE IF NOT EXISTS aurora_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    alert_id INTEGER NOT NULL,
+    aurora_value INTEGER NOT NULL,
+    recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (alert_id) REFERENCES alerts(id) ON DELETE CASCADE
+  );
+
   -- Indexes for performance
   CREATE INDEX IF NOT EXISTS idx_alerts_user_id ON alerts(user_id);
   CREATE INDEX IF NOT EXISTS idx_alerts_coords ON alerts(latitude, longitude);
+  CREATE INDEX IF NOT EXISTS idx_aurora_history_alert_id ON aurora_history(alert_id);
+  CREATE INDEX IF NOT EXISTS idx_aurora_history_recorded_at ON aurora_history(recorded_at);
 `);
 
 export default db;

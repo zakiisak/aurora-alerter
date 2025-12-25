@@ -34,9 +34,10 @@ const AURORA_FORECAST_URL = 'https://www.swpc.noaa.gov/products/aurora-30-minute
  * @param {number} alertData.threshold - Alert threshold
  * @param {number} alertData.latitude - Alert latitude
  * @param {number} alertData.longitude - Alert longitude
+ * @param {string} alertData.cityName - City name for the location
  */
 export async function sendAuroraAlert(toEmail, alertData) {
-  const { auroraValue, threshold, latitude, longitude } = alertData;
+  const { auroraValue, threshold, latitude, longitude, cityName = 'Unknown Location' } = alertData;
 
   // Get sender email from environment (or use a default)
   const senderEmail = process.env.MAILERSEND_SENDER_EMAIL || 'noreply@test-r9084zv19omgw63d.mlsender.net';
@@ -58,9 +59,9 @@ export async function sendAuroraAlert(toEmail, alertData) {
       .setFrom(new Sender(senderEmail, senderName))
       .setTo([new Recipient(toEmail)])
       .setReplyTo(new Recipient(senderEmail, senderName))
-      .setSubject(`🌌 Aurora Alert: Activity Level ${auroraValue} Detected!`)
-      .setHtml(buildEmailHtml(auroraValue, threshold, latitude, longitude))
-      .setText(buildEmailText(auroraValue, threshold, latitude, longitude));
+      .setSubject(`🌌 Aurora Alert: ${cityName} Level ${auroraValue} Detected!`)
+      .setHtml(buildEmailHtml(auroraValue, threshold, latitude, longitude, cityName))
+      .setText(buildEmailText(auroraValue, threshold, latitude, longitude, cityName));
 
     const response = await client.email.send(emailParams);
     console.log(`Email sent successfully to ${toEmail}:`, response.statusCode || response.status);
@@ -81,7 +82,7 @@ export async function sendAuroraAlert(toEmail, alertData) {
 /**
  * Build HTML email content
  */
-function buildEmailHtml(auroraValue, threshold, latitude, longitude) {
+function buildEmailHtml(auroraValue, threshold, latitude, longitude, cityName) {
   return `
     <!DOCTYPE html>
     <html>
@@ -114,8 +115,8 @@ function buildEmailHtml(auroraValue, threshold, latitude, longitude) {
           
           <p>Current aurora probability at your selected location:</p>
           <ul>
-            <li><strong>Latitude:</strong> ${latitude.toFixed(4)}°</li>
-            <li><strong>Longitude:</strong> ${longitude.toFixed(4)}°</li>
+            <li><strong>Location:</strong> ${cityName}</li>
+            <li><strong>Coordinates:</strong> ${latitude.toFixed(4)}°, ${longitude.toFixed(4)}°</li>
             <li><strong>Your Threshold:</strong> ${threshold}/9</li>
             <li><strong>Current Value:</strong> ${auroraValue}/9</li>
           </ul>
@@ -139,7 +140,7 @@ function buildEmailHtml(auroraValue, threshold, latitude, longitude) {
 /**
  * Build plain text email content
  */
-function buildEmailText(auroraValue, threshold, latitude, longitude) {
+function buildEmailText(auroraValue, threshold, latitude, longitude, cityName) {
   return `
 Aurora Alert!
 
@@ -149,8 +150,8 @@ Current Value: ${auroraValue}/9
 Your Threshold: ${threshold}/9
 
 Location:
-- Latitude: ${latitude.toFixed(4)}°
-- Longitude: ${longitude.toFixed(4)}°
+- City: ${cityName}
+- Coordinates: ${latitude.toFixed(4)}°, ${longitude.toFixed(4)}°
 
 Links:
 - Latest Aurora Image: ${AURORA_IMAGE_URL}

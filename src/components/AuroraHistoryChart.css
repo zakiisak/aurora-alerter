@@ -1,0 +1,83 @@
+.aurora-chart-container {
+  margin-top: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.aurora-chart-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.aurora-chart {
+  position: relative;
+  width: 100%;
+  height: 100px;
+}
+
+.aurora-chart-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.aurora-chart-grid {
+  stroke: #e0e0e0;
+  stroke-width: 0.5;
+}
+
+.aurora-chart-line {
+  stroke: #667eea;
+  stroke-width: 2;
+  fill: none;
+}
+
+.aurora-chart-point {
+  fill: #667eea;
+}
+
+.aurora-chart-labels {
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  right: 0;
+  height: 20px;
+  font-size: 10px;
+  color: #999;
+}
+
+.aurora-chart-label {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.aurora-chart-y-labels {
+  position: absolute;
+  left: -25px;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #999;
+}
+
+.aurora-chart-y-label {
+  text-align: right;
+}
+
+.aurora-chart-empty {
+  padding: 20px;
+  text-align: center;
+  color: #999;
+  font-size: 12px;
+}
+
