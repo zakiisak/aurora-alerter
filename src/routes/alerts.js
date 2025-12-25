@@ -42,6 +42,7 @@ router.get('/', async (req, res) => {
         a.latitude,
         a.longitude,
         a.threshold,
+        a.increment_threshold,
         a.created_at,
         a.updated_at,
         ans.last_notified_value,
@@ -103,7 +104,7 @@ router.get('/', async (req, res) => {
  */
 router.post('/', (req, res) => {
   try {
-    const { latitude, longitude, threshold } = req.body;
+    const { latitude, longitude, threshold, increment_threshold } = req.body;
 
     // Validation
     if (typeof latitude !== 'number' || latitude < -90 || latitude > 90) {
@@ -114,15 +115,21 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Valid longitude (-180 to 180) is required' });
     }
 
-    if (typeof threshold !== 'number' || threshold < 1 || threshold > 9 || !Number.isInteger(threshold)) {
-      return res.status(400).json({ error: 'Valid threshold (1-9 integer) is required' });
+    if (typeof threshold !== 'number' || threshold < 1 || threshold > 100 || !Number.isInteger(threshold)) {
+      return res.status(400).json({ error: 'Valid threshold (1-100 integer) is required' });
     }
+
+    const incrementThreshold = increment_threshold !== undefined 
+      ? (typeof increment_threshold === 'number' && increment_threshold >= 1 && increment_threshold <= 50 && Number.isInteger(increment_threshold)
+          ? increment_threshold 
+          : 10) // Default to 10 if invalid
+      : 10; // Default to 10 if not provided
 
     const now = new Date().toISOString();
     const result = db.prepare(`
-      INSERT INTO alerts (user_id, latitude, longitude, threshold, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(req.user.id, latitude, longitude, threshold, now, now);
+      INSERT INTO alerts (user_id, latitude, longitude, threshold, increment_threshold, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(req.user.id, latitude, longitude, threshold, incrementThreshold, now, now);
 
     const alert = db.prepare(`
       SELECT 
@@ -130,6 +137,7 @@ router.post('/', (req, res) => {
         a.latitude,
         a.longitude,
         a.threshold,
+        a.increment_threshold,
         a.created_at,
         a.updated_at
       FROM alerts a
@@ -151,7 +159,7 @@ router.post('/', (req, res) => {
 router.put('/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const { latitude, longitude, threshold } = req.body;
+    const { latitude, longitude, threshold, increment_threshold } = req.body;
 
     // Check if alert exists and belongs to user
     const existing = db.prepare('SELECT * FROM alerts WHERE id = ? AND user_id = ?').get(id, req.user.id);
@@ -181,11 +189,19 @@ router.put('/:id', (req, res) => {
     }
 
     if (threshold !== undefined) {
-      if (typeof threshold !== 'number' || threshold < 1 || threshold > 9 || !Number.isInteger(threshold)) {
-        return res.status(400).json({ error: 'Valid threshold (1-9 integer) is required' });
+      if (typeof threshold !== 'number' || threshold < 1 || threshold > 100 || !Number.isInteger(threshold)) {
+        return res.status(400).json({ error: 'Valid threshold (1-100 integer) is required' });
       }
       updates.push('threshold = ?');
       values.push(threshold);
+    }
+
+    if (increment_threshold !== undefined) {
+      if (typeof increment_threshold !== 'number' || increment_threshold < 1 || increment_threshold > 50 || !Number.isInteger(increment_threshold)) {
+        return res.status(400).json({ error: 'Valid increment_threshold (1-50 integer) is required' });
+      }
+      updates.push('increment_threshold = ?');
+      values.push(increment_threshold);
     }
 
     if (updates.length === 0) {
@@ -209,6 +225,7 @@ router.put('/:id', (req, res) => {
         a.latitude,
         a.longitude,
         a.threshold,
+        a.increment_threshold,
         a.created_at,
         a.updated_at,
         ans.last_notified_value,

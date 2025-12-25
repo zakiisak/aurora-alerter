@@ -19,6 +19,63 @@ const db = new Database(dbPath);
 // Enable foreign keys
 db.pragma('foreign_keys = ON');
 
+// Migration: Update alerts table schema if needed
+try {
+  const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='alerts'").get();
+  
+  if (tableInfo && tableInfo.sql.includes('threshold <= 9')) {
+    console.log('[Database] Migrating alerts table schema...');
+    
+    // Disable foreign keys temporarily for migration
+    db.pragma('foreign_keys = OFF');
+    
+    // Create new table with updated schema
+    db.exec(`
+      CREATE TABLE alerts_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        threshold INTEGER NOT NULL CHECK(threshold >= 1 AND threshold <= 100),
+        increment_threshold INTEGER NOT NULL DEFAULT 10 CHECK(increment_threshold >= 1 AND increment_threshold <= 50),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `);
+    
+    // Copy data from old table (set default increment_threshold for existing rows)
+    db.exec(`
+      INSERT INTO alerts_new (id, user_id, latitude, longitude, threshold, increment_threshold, created_at, updated_at)
+      SELECT id, user_id, latitude, longitude, threshold, 
+             COALESCE(increment_threshold, 10) as increment_threshold,
+             created_at, updated_at
+      FROM alerts;
+    `);
+    
+    // Drop old table
+    db.exec('DROP TABLE alerts;');
+    
+    // Rename new table
+    db.exec('ALTER TABLE alerts_new RENAME TO alerts;');
+    
+    // Recreate indexes
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_alerts_user_id ON alerts(user_id);
+      CREATE INDEX IF NOT EXISTS idx_alerts_coords ON alerts(latitude, longitude);
+    `);
+    
+    // Re-enable foreign keys
+    db.pragma('foreign_keys = ON');
+    
+    console.log('[Database] Migration completed successfully.');
+  }
+} catch (error) {
+  console.error('[Database] Migration error:', error);
+  // Re-enable foreign keys even if migration fails
+  db.pragma('foreign_keys = ON');
+}
+
 // Create tables
 db.exec(`
   -- Users table (email-based auth)
@@ -34,7 +91,8 @@ db.exec(`
     user_id INTEGER NOT NULL,
     latitude REAL NOT NULL,
     longitude REAL NOT NULL,
-    threshold INTEGER NOT NULL CHECK(threshold >= 1 AND threshold <= 9),
+    threshold INTEGER NOT NULL CHECK(threshold >= 1 AND threshold <= 100),
+    increment_threshold INTEGER NOT NULL DEFAULT 10 CHECK(increment_threshold >= 1 AND increment_threshold <= 50),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

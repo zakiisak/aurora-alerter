@@ -146,14 +146,20 @@ function AlertList({ user, onLogout }) {
                     <div className="info-item">
                       <span className="info-label">Threshold:</span>
                       <span className="info-value threshold-value">
-                        {alert.threshold}/9
+                        {alert.threshold}/100
+                      </span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Notify on Increase:</span>
+                      <span className="info-value">
+                        {alert.increment_threshold || 10} units
                       </span>
                     </div>
                     {alert.latestAuroraValue !== null && (
                       <div className="info-item">
                         <span className="info-label">Latest Value:</span>
                         <span className="info-value latest-value">
-                          {alert.latestAuroraValue}/9
+                          {alert.latestAuroraValue}/100
                         </span>
                         {alert.latestAuroraValueAt && (
                           <span className="info-time">
@@ -166,7 +172,7 @@ function AlertList({ user, onLogout }) {
                       <div className="info-item">
                         <span className="info-label">Last Notified:</span>
                         <span className="info-value">
-                          Value {alert.last_notified_value}/9
+                          Value {alert.last_notified_value}/100
                         </span>
                         {alert.last_notified_at && (
                           <span className="info-time">

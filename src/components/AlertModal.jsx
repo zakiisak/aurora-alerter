@@ -25,7 +25,8 @@ function MapClickHandler({ onMapClick }) {
 function AlertModal({ alert, user, onClose, onSave }) {
   const [latitude, setLatitude] = useState(alert?.latitude || 64.8378); // Default: Fairbanks, Alaska
   const [longitude, setLongitude] = useState(alert?.longitude || -147.7164);
-  const [threshold, setThreshold] = useState(alert?.threshold || 5);
+  const [threshold, setThreshold] = useState(alert?.threshold || 15);
+  const [incrementThreshold, setIncrementThreshold] = useState(alert?.increment_threshold || 10);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -51,6 +52,7 @@ function AlertModal({ alert, user, onClose, onSave }) {
           latitude,
           longitude,
           threshold,
+          increment_threshold: incrementThreshold,
         }),
       });
 
@@ -127,20 +129,41 @@ function AlertModal({ alert, user, onClose, onSave }) {
           <div className="modal-section">
             <h3>2. Set Aurora Threshold</h3>
             <p className="section-description">
-              Choose the minimum aurora probability level (1-9) to trigger an alert
+              Choose the minimum aurora probability level (1-100) to trigger an alert
             </p>
             <div className="threshold-container">
               <input
                 type="range"
                 min="1"
-                max="9"
+                max="100"
                 value={threshold}
                 onChange={(e) => setThreshold(parseInt(e.target.value))}
                 className="threshold-slider"
               />
               <div className="threshold-value-display">
                 <span className="threshold-number">{threshold}</span>
-                <span className="threshold-label">/ 9</span>
+                <span className="threshold-label">/ 100</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="modal-section">
+            <h3>3. Set Notification Increment</h3>
+            <p className="section-description">
+              Only notify when aurora value increases by this amount (1-50). Prevents spam notifications for small fluctuations.
+            </p>
+            <div className="threshold-container">
+              <input
+                type="range"
+                min="1"
+                max="50"
+                value={incrementThreshold}
+                onChange={(e) => setIncrementThreshold(parseInt(e.target.value))}
+                className="threshold-slider"
+              />
+              <div className="threshold-value-display">
+                <span className="threshold-number">{incrementThreshold}</span>
+                <span className="threshold-label">units</span>
               </div>
             </div>
           </div>

@@ -1,8 +1,12 @@
 .aurora-chart-container {
   margin-top: 15px;
   padding: 15px;
+  padding-top: 20px;
+  padding-bottom: 25px;
   background: #f8f9fa;
   border-radius: 8px;
+  position: relative;
+  overflow: visible;
 }
 
 .aurora-chart-title {
@@ -18,12 +22,16 @@
   position: relative;
   width: 100%;
   height: 100px;
+  overflow: visible;
 }
 
 .aurora-chart-svg {
   width: 100%;
   height: 100%;
   display: block;
+  overflow: visible;
+  /* Ensure circles stay round by maintaining aspect ratio */
+  shape-rendering: geometricPrecision;
 }
 
 .aurora-chart-grid {
@@ -39,6 +47,18 @@
 
 .aurora-chart-point {
   fill: #667eea;
+  cursor: pointer;
+  transition: r 0.2s;
+}
+
+.aurora-chart-point-hover {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.aurora-chart-point-hover:hover + .aurora-chart-point {
+  r: 3;
+  fill: #5568d3;
 }
 
 .aurora-chart-labels {
@@ -59,10 +79,10 @@
 
 .aurora-chart-y-labels {
   position: absolute;
-  left: -25px;
+  left: -35px;
   top: 0;
   bottom: 0;
-  width: 20px;
+  width: 30px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -79,5 +99,30 @@
   text-align: center;
   color: #999;
   font-size: 12px;
+}
+
+.aurora-chart-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1000;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.aurora-chart-tooltip-value {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.aurora-chart-tooltip-time {
+  font-size: 11px;
+  opacity: 0.9;
 }
 

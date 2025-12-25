@@ -33,6 +33,7 @@ export async function checkAllAlerts() {
         a.latitude,
         a.longitude,
         a.threshold,
+        a.increment_threshold,
         u.email,
         ans.last_notified_value,
         ans.last_notified_at
@@ -87,6 +88,7 @@ async function checkSingleAlert(alert, coordinates) {
 
   const currentAuroraValue = closest.aurora;
   const threshold = alert.threshold;
+  const incrementThreshold = alert.increment_threshold || 10; // Default to 10 if not set
 
   // Check if threshold is met
   if (currentAuroraValue < threshold) {
@@ -103,18 +105,32 @@ async function checkSingleAlert(alert, coordinates) {
   const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
   const isExpired = !lastNotifiedAt || lastNotifiedAt < twelveHoursAgo;
 
-  // Only notify if:
-  // 1. Current value > last notified value, OR
-  // 2. Last notification expired (12 hours passed)
-  const shouldNotify = 
-    isExpired || 
-    lastNotifiedValue === null || 
-    currentAuroraValue > lastNotifiedValue;
+  // If never notified before, always notify when threshold is met (already checked above)
+  if (lastNotifiedValue === null) {
+    // First notification - threshold already met, so notify
+    // (increment_threshold doesn't apply to first notification)
+  } else {
+    // Calculate increase from last notified value
+    const increase = currentAuroraValue - lastNotifiedValue;
+    
+    // Only notify if:
+    // 1. Last notification expired (12 hours passed), OR
+    // 2. Current value increased by at least increment_threshold from last notified value
+    if (!isExpired && increase < incrementThreshold) {
+      console.log(
+        `[Alert Check] Skipping alert ${alert.id}: ` +
+        `current=${currentAuroraValue}, last=${lastNotifiedValue}, ` +
+        `increase=${increase}, required=${incrementThreshold}, expired=${isExpired}`
+      );
+      return false;
+    }
+  }
 
   if (!shouldNotify) {
     console.log(
       `[Alert Check] Skipping alert ${alert.id}: ` +
-      `current=${currentAuroraValue}, last=${lastNotifiedValue}, expired=${isExpired}`
+      `current=${currentAuroraValue}, last=${lastNotifiedValue}, ` +
+      `increase=${increase}, required=${incrementThreshold}, expired=${isExpired}`
     );
     return false;
   }

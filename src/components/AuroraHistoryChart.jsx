@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './AuroraHistoryChart.css';
 
 /**
@@ -6,6 +6,9 @@ import './AuroraHistoryChart.css';
  * @param {Array} history - Array of {value, timestamp} objects
  */
 function AuroraHistoryChart({ history = [] }) {
+  const [hoveredPoint, setHoveredPoint] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
   // Process history data for the last 24 hours
   const chartData = React.useMemo(() => {
     if (!history || history.length === 0) {
@@ -71,11 +74,16 @@ function AuroraHistoryChart({ history = [] }) {
     return result;
   }, [history]);
 
-  // Calculate chart dimensions
-  const maxValue = 9;
+  // Calculate chart dimensions with padding
+  const maxValue = 100;
   const minValue = 0;
   const chartHeight = 80;
   const chartWidth = 100; // percentage
+  
+  // Add more padding to top and bottom so edge values (0 and 100) are fully visible
+  // Increased padding to prevent clipping of circles and lines
+  const verticalPadding = 12; // padding in viewBox units (15% of chart height)
+  const effectiveHeight = chartHeight - (verticalPadding * 2); // usable height after padding
 
   // Get current hour for reference
   const currentHour = new Date().getHours();
@@ -100,10 +108,12 @@ function AuroraHistoryChart({ history = [] }) {
     <div className="aurora-chart-container">
       <div className="aurora-chart-title">24-Hour History</div>
       <div className="aurora-chart">
-        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="aurora-chart-svg">
+        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="aurora-chart-svg" preserveAspectRatio="xMidYMid meet">
           {/* Y-axis grid lines */}
-          {[0, 3, 6, 9].map((value) => {
-            const y = chartHeight - ((value - minValue) / (maxValue - minValue)) * chartHeight;
+          {[0, 25, 50, 75, 100].map((value) => {
+            // Calculate Y position with padding: map value to effective height, then add top padding
+            const normalizedValue = (value - minValue) / (maxValue - minValue);
+            const y = verticalPadding + (1 - normalizedValue) * effectiveHeight;
             return (
               <line
                 key={`grid-${value}`}
@@ -122,7 +132,9 @@ function AuroraHistoryChart({ history = [] }) {
               .map((point, index) => {
                 if (point.value === null) return null;
                 const x = (index / (chartData.length - 1)) * chartWidth;
-                const y = chartHeight - ((point.value - minValue) / (maxValue - minValue)) * chartHeight;
+                // Calculate Y position with padding: map value to effective height, then add top padding
+                const normalizedValue = (point.value - minValue) / (maxValue - minValue);
+                const y = verticalPadding + (1 - normalizedValue) * effectiveHeight;
                 return `${x},${y}`;
               })
               .filter(Boolean)
@@ -131,19 +143,61 @@ function AuroraHistoryChart({ history = [] }) {
             fill="none"
           />
 
-          {/* Data points */}
+          {/* Data points with hover areas */}
           {chartData.map((point, index) => {
             if (point.value === null) return null;
             const x = (index / (chartData.length - 1)) * chartWidth;
-            const y = chartHeight - ((point.value - minValue) / (maxValue - minValue)) * chartHeight;
+            // Calculate Y position with padding: map value to effective height, then add top padding
+            const normalizedValue = (point.value - minValue) / (maxValue - minValue);
+            const y = verticalPadding + (1 - normalizedValue) * effectiveHeight;
+            
+            // Format timestamp for tooltip
+            const timestamp = new Date(point.timestamp);
+            const timeStr = timestamp.toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit',
+              hour12: true 
+            });
+            
             return (
-              <circle
-                key={`point-${index}`}
-                cx={x}
-                cy={y}
-                r="1.5"
-                className="aurora-chart-point"
-              />
+              <g key={`point-group-${index}`}>
+                {/* Invisible larger circle for easier hovering */}
+                <circle
+                  cx={x}
+                  cy={y}
+                  r="6"
+                  className="aurora-chart-point-hover"
+                  onMouseEnter={(e) => {
+                    const container = e.currentTarget.closest('.aurora-chart-container');
+                    if (container) {
+                      const containerRect = container.getBoundingClientRect();
+                      setTooltipPosition({
+                        x: e.clientX - containerRect.left,
+                        y: e.clientY - containerRect.top - 40,
+                      });
+                      setHoveredPoint({ value: point.value, time: timeStr, index });
+                    }
+                  }}
+                  onMouseMove={(e) => {
+                    const container = e.currentTarget.closest('.aurora-chart-container');
+                    if (container) {
+                      const containerRect = container.getBoundingClientRect();
+                      setTooltipPosition({
+                        x: e.clientX - containerRect.left,
+                        y: e.clientY - containerRect.top - 40,
+                      });
+                    }
+                  }}
+                  onMouseLeave={() => setHoveredPoint(null)}
+                />
+                {/* Visible data point */}
+                <circle
+                  cx={x}
+                  cy={y}
+                  r="2.5"
+                  className="aurora-chart-point"
+                />
+              </g>
             );
           })}
         </svg>
@@ -167,12 +221,27 @@ function AuroraHistoryChart({ history = [] }) {
 
         {/* Y-axis labels */}
         <div className="aurora-chart-y-labels">
-          <span className="aurora-chart-y-label">9</span>
-          <span className="aurora-chart-y-label">6</span>
-          <span className="aurora-chart-y-label">3</span>
+          <span className="aurora-chart-y-label">100</span>
+          <span className="aurora-chart-y-label">75</span>
+          <span className="aurora-chart-y-label">50</span>
+          <span className="aurora-chart-y-label">25</span>
           <span className="aurora-chart-y-label">0</span>
         </div>
       </div>
+
+      {/* Tooltip */}
+      {hoveredPoint && (
+        <div
+          className="aurora-chart-tooltip"
+          style={{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+          }}
+        >
+          <div className="aurora-chart-tooltip-value">{hoveredPoint.value}/100</div>
+          <div className="aurora-chart-tooltip-time">{hoveredPoint.time}</div>
+        </div>
+      )}
     </div>
   );
 }

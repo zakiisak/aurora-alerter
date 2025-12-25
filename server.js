@@ -76,13 +76,13 @@ app.listen(PORT, () => {
   console.log(`📊 Database: ${process.env.DB_PATH || './data/aurora.db'}`);
   
   // Check for required environment variables
-  if (!process.env.MAILERSEND_API_KEY) {
-    console.warn('\n⚠️  WARNING: MAILERSEND_API_KEY is not set!');
+  if (!process.env.BREVO_API_KEY) {
+    console.warn('\n⚠️  WARNING: BREVO_API_KEY is not set!');
     console.warn('   Email notifications will not work.');
-    console.warn('   Please create a .env file with your MailerSend API key.');
+    console.warn('   Please create a .env file with your Brevo API key.');
     console.warn('   See .env.example for the format.\n');
   } else {
-    console.log('✅ MailerSend API key configured');
+    console.log('✅ Brevo API key configured');
   }
   
   // Start background job scheduler
