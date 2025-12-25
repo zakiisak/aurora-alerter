@@ -25,7 +25,11 @@ const app = express();
 const PORT = process.env.PORT || 4747;
 
 // Middleware
-app.use(cors());
+// Middleware
+// Only use CORS in development (nginx handles it in production)
+if (process.env.NODE_ENV !== 'production') {
+  app.use(cors());
+}
 app.use(express.json());
 
 // Serve static files from public directory (for built frontend)
