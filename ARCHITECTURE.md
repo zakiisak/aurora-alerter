@@ -124,7 +124,7 @@ alert_notification_state:
 
 ## Environment Variables
 
-- `PORT` - Server port (default: 3000)
+- `PORT` - Server port (default: 4747)
 - `MAILERSEND_API_KEY` - MailerSend API key (required)
 - `MAILERSEND_SENDER_EMAIL` - Verified sender email (optional)
 - `MAILERSEND_SENDER_NAME` - Sender name (optional)

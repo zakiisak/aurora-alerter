@@ -6,10 +6,10 @@ export default defineConfig({
   root: '.',
   publicDir: 'public',
   server: {
-    port: 5173,
+    port: 4748,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:4747',
         changeOrigin: true,
       },
     },
@@ -20,6 +20,7 @@ export default defineConfig({
   },
   define: {
     global: 'globalThis',
+    'import.meta.env.PROD': JSON.stringify(process.env.NODE_ENV === 'production'),
   },
   optimizeDeps: {
     esbuildOptions: {

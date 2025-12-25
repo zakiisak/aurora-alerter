@@ -15,7 +15,7 @@
    Edit `.env` and add your MailerSend API key:
    ```
    MAILERSEND_API_KEY=your_mailersend_api_key_here
-   PORT=3000
+   PORT=4747
    DB_PATH=./data/aurora.db
    ```
 
@@ -53,7 +53,7 @@
    npm run build:start
    ```
    
-   Then open http://localhost:3000 in your browser.
+   Then open http://localhost:4747 in your browser.
 
 ## How It Works
 

@@ -8,7 +8,7 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "dev:frontend": "vite",
-    "build": "vite build",
+    "build": "NODE_ENV=production vite build",
     "build:start": "npm run build && npm start",
     "check-env": "node check-env.js"
   },

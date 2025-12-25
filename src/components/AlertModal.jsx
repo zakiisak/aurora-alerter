@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
+import { apiRequest } from '../utils/api';
 import './AlertModal.css';
 
 // Fix for default marker icon in React-Leaflet
@@ -41,10 +42,9 @@ function AlertModal({ alert, user, onClose, onSave }) {
       const url = alert ? `/api/alerts/${alert.id}` : '/api/alerts';
       const method = alert ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await apiRequest(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
           'x-user-email': user.email,
         },
         body: JSON.stringify({

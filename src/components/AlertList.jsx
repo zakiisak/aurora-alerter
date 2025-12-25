@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AlertModal from './AlertModal';
+import { apiRequest } from '../utils/api';
 import './AlertList.css';
 
 function AlertList({ user, onLogout }) {
@@ -14,7 +15,7 @@ function AlertList({ user, onLogout }) {
 
   const fetchAlerts = async () => {
     try {
-      const response = await fetch('/api/alerts', {
+      const response = await apiRequest('/api/alerts', {
         headers: {
           'x-user-email': user.email,
         },
@@ -46,7 +47,7 @@ function AlertList({ user, onLogout }) {
     }
 
     try {
-      const response = await fetch(`/api/alerts/${id}`, {
+      const response = await apiRequest(`/api/alerts/${id}`, {
         method: 'DELETE',
         headers: {
           'x-user-email': user.email,
