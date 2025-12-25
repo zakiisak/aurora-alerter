@@ -109,6 +109,7 @@ async function checkSingleAlert(alert, coordinates) {
   if (lastNotifiedValue === null) {
     // First notification - threshold already met, so notify
     // (increment_threshold doesn't apply to first notification)
+    // Continue to send notification below
   } else {
     // Calculate increase from last notified value
     const increase = currentAuroraValue - lastNotifiedValue;
@@ -124,15 +125,6 @@ async function checkSingleAlert(alert, coordinates) {
       );
       return false;
     }
-  }
-
-  if (!shouldNotify) {
-    console.log(
-      `[Alert Check] Skipping alert ${alert.id}: ` +
-      `current=${currentAuroraValue}, last=${lastNotifiedValue}, ` +
-      `increase=${increase}, required=${incrementThreshold}, expired=${isExpired}`
-    );
-    return false;
   }
 
   // Send notification
