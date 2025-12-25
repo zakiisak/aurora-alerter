@@ -21,6 +21,7 @@ db.pragma('foreign_keys = ON');
 
 // Migration: Update alerts table schema if needed
 try {
+  // Check if alerts table exists
   const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='alerts'").get();
   
   if (tableInfo) {
@@ -31,6 +32,13 @@ try {
       
       // Disable foreign keys temporarily for migration
       db.pragma('foreign_keys = OFF');
+      
+      // Clean up any leftover alerts_new table from a previous failed migration
+      try {
+        db.exec('DROP TABLE IF EXISTS alerts_new;');
+      } catch (e) {
+        // Ignore errors if table doesn't exist
+      }
       
       // Create new table with updated schema
       db.exec(`
@@ -91,8 +99,23 @@ try {
   }
 } catch (error) {
   console.error('[Database] Migration error:', error);
-  // Re-enable foreign keys even if migration fails
-  db.pragma('foreign_keys = ON');
+  // Try to clean up and restore state
+  try {
+    db.pragma('foreign_keys = OFF');
+    // If alerts_new exists but alerts doesn't, we're in a bad state - try to recover
+    const alertsExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='alerts'").get();
+    const alertsNewExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='alerts_new'").get();
+    
+    if (!alertsExists && alertsNewExists) {
+      console.log('[Database] Attempting to recover from failed migration...');
+      db.exec('ALTER TABLE alerts_new RENAME TO alerts;');
+      console.log('[Database] Recovery successful.');
+    }
+    db.pragma('foreign_keys = ON');
+  } catch (recoveryError) {
+    console.error('[Database] Recovery failed:', recoveryError);
+    db.pragma('foreign_keys = ON');
+  }
 }
 
 // Create tables
