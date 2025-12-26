@@ -53,9 +53,13 @@
 
 .alert-list-actions {
   margin-bottom: 30px;
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
 }
 
-.btn-add-alert {
+.btn-add-alert,
+.btn-view-map {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
@@ -68,9 +72,19 @@
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.btn-add-alert:hover {
+.btn-add-alert:hover,
+.btn-view-map:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.btn-view-map {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.btn-view-map:hover {
+  box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
 }
 
 .empty-state {

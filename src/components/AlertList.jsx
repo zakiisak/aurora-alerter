@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AlertModal from './AlertModal';
 import AuroraHistoryChart from './AuroraHistoryChart';
+import AuroraMapView from './AuroraMapView';
 import { apiRequest } from '../utils/api';
 import './AlertList.css';
 
@@ -9,6 +10,7 @@ function AlertList({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingAlert, setEditingAlert] = useState(null);
+  const [showMapView, setShowMapView] = useState(false);
 
   useEffect(() => {
     fetchAlerts();
@@ -77,6 +79,10 @@ function AlertList({ user, onLogout }) {
     handleModalClose();
   };
 
+  if (showMapView) {
+    return <AuroraMapView user={user} onBack={() => setShowMapView(false)} />;
+  }
+
   if (loading) {
     return (
       <div className="alert-list-loading">
@@ -101,6 +107,9 @@ function AlertList({ user, onLogout }) {
         <div className="alert-list-actions">
           <button onClick={handleAddAlert} className="btn-add-alert">
             + Add Alert
+          </button>
+          <button onClick={() => setShowMapView(true)} className="btn-view-map">
+            🗺️ View Map
           </button>
         </div>
 

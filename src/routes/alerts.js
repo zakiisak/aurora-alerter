@@ -6,6 +6,7 @@
 import express from 'express';
 import db from '../db/database.js';
 import { getCachedCityName } from '../services/geocoding.js';
+import { fetchAuroraData } from '../services/aurora.js';
 
 const router = express.Router();
 
@@ -264,6 +265,41 @@ router.delete('/:id', (req, res) => {
   } catch (error) {
     console.error('Error deleting alert:', error);
     res.status(500).json({ error: 'Failed to delete alert' });
+  }
+});
+
+/**
+ * Get aurora data for map visualization
+ * GET /api/alerts/map-data?hoursAgo=0
+ */
+router.get('/map-data', async (req, res) => {
+  try {
+    const hoursAgo = parseInt(req.query.hoursAgo) || 0;
+    const targetTime = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
+
+    // For now, fetch current aurora data from NOAA
+    // In the future, we could store historical snapshots
+    const auroraData = await fetchAuroraData();
+    const coordinates = auroraData.coordinates || [];
+
+    // Convert to format expected by frontend: {lat, lng, value}
+    const mapData = coordinates.map(coord => {
+      const [lng, lat, aurora] = coord;
+      return {
+        latitude: lat,
+        longitude: lng,
+        value: aurora,
+      };
+    });
+
+    res.json({ 
+      success: true, 
+      data: mapData,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Error fetching map data:', error);
+    res.status(500).json({ error: 'Failed to fetch map data' });
   }
 });
 
